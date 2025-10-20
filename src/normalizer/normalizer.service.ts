@@ -78,8 +78,47 @@ export class NormalizerService {
     ): Promise<number | null> {
         try {
             const versions = await this.crmService.getVersions(modelId, year);
+
+            // Si no hay versiones en absoluto
+            if (!versions || versions.length === 0) {
+                this.logger.warn(`[Versión] No se encontraron versiones para modelo ${modelId} (${year})`);
+                return null;
+            }
+
+            // Si no hay input (campo vacío)
+            if (!input) {
+                const fallback = versions.find(v => v.name.toUpperCase().includes('SIN VERSION')) || versions[0];
+                this.logger.log(`[Versión] Input vacío, usando fallback: ${fallback.name}`);
+                return fallback.id;
+            }
+
+            // Intentar coincidencia normal
             const match = this.fuzzyMatch(input, versions, 'name', 'Versión');
-            return match ? match.id : null;
+
+            // Si no hay coincidencia
+            if (!match) {
+                // Intentar buscar "SIN VERSION"
+                const fallbackVersion = versions.find(v =>
+                    v.name.toUpperCase().includes('SIN VERSION')
+                );
+
+                if (fallbackVersion) {
+                    this.logger.warn(`[Versión] No match para "${input}", usando fallback "SIN VERSION"`);
+                    return fallbackVersion.id;
+                }
+
+                // Si solo hay una versión, usarla
+                if (versions.length === 1) {
+                    this.logger.warn(`[Versión] No match para "${input}", usando única versión: ${versions[0].name}`);
+                    return versions[0].id;
+                }
+
+                // Si no hay fallback posible
+                this.logger.error(`[Versión] No se encontró coincidencia ni fallback para "${input}"`);
+                return null;
+            }
+
+            return match.id;
         } catch (error) {
             this.logger.error(`[Versión] Error con modelo ${modelId} año ${year}: ${error.message}`);
             return null;
