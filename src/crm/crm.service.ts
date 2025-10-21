@@ -76,7 +76,7 @@ export class CrmService {
             this.logger.log(`Lead enviado al CRM → ID: ${data?.data?.id}`);
             return data;
         } catch (error) {
-            this.logger.error(`Error enviando lead al CRM: ${error.message}`);
+            this.logger.error(`Error enviando lead al CRM: ${error}`);
             throw error;
         }
     }

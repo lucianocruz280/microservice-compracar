@@ -92,29 +92,22 @@ export class FacebookService {
                     formData.append(`images[${i}]`, file);
                 });
             }
-            const rawStreams = (formData as any)._streams;
 
-            const debugForm: Record<string, any> = {};
-            if (Array.isArray(rawStreams)) {
-                for (let i = 0; i < rawStreams.length; i++) {
-                    const line = rawStreams[i];
-                    if (typeof line === 'string') {
-                        const match = line.match(/name="([^"]+)"\r\n\r\n(.+)/s);
-                        if (match) {
-                            const [, key, value] = match;
+            const debugPayload = {
+                ...normalized,
+                year: lead.year,
+                amount: lead.amount,
+                message: lead.message,
+                hasAirConditioning: lead.hasAirConditioning,
+                name: lead.name,
+                phone: lead.phone,
+                email: lead.email,
+                images: Array.isArray(lead.images) ? `[${lead.images.length} imágenes]` : 'Sin imágenes',
+                isFacebookLeads: true,
+            };
 
-                            // Si no quieres mostrar datos sensibles:
-                            if (['phone', 'email', 'name'].includes(key)) {
-                                debugForm[key] = '[OCULTO]';
-                            } else {
-                                debugForm[key] = value.trim();
-                            }
-                        }
-                    }
-                }
-            }
+            this.logger.log(`📤 Payload completo enviado al CRM:\n${JSON.stringify(debugPayload, null, 2)}`);
 
-            this.logger.log(`📤 [Producción] Payload enviado al CRM:\n${JSON.stringify(debugForm, null, 2)}`);
             // ======================================================
             // 4️⃣ Envío al CRM (Laravel)
             // ======================================================
