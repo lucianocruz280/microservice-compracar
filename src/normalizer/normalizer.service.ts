@@ -9,7 +9,7 @@ export class NormalizerService {
     constructor(private readonly crmService: CrmService) { }
 
     // Nivel mínimo de similitud (0–100)
-    private threshold = 0.60;
+    private threshold = 0.35;
 
     // ======================================================
     // 🔹 UTILIDAD GENERAL
