@@ -93,7 +93,7 @@ export class FacebookService {
                     formData.append(`images[${i}]`, file);
                 });
             }
-
+            this.logger.log(`Amount numérico final: ${lead.amount}`);
             const debugPayload = {
                 ...normalized,
                 year: lead.year,
