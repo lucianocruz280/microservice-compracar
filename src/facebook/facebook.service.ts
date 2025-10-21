@@ -92,7 +92,29 @@ export class FacebookService {
                     formData.append(`images[${i}]`, file);
                 });
             }
-            this.logger.log(`Normalización completa: ${JSON.stringify(formData, null, 2)}`);
+            const rawStreams = (formData as any)._streams;
+
+            const debugForm: Record<string, any> = {};
+            if (Array.isArray(rawStreams)) {
+                for (let i = 0; i < rawStreams.length; i++) {
+                    const line = rawStreams[i];
+                    if (typeof line === 'string') {
+                        const match = line.match(/name="([^"]+)"\r\n\r\n(.+)/s);
+                        if (match) {
+                            const [, key, value] = match;
+
+                            // Si no quieres mostrar datos sensibles:
+                            if (['phone', 'email', 'name'].includes(key)) {
+                                debugForm[key] = '[OCULTO]';
+                            } else {
+                                debugForm[key] = value.trim();
+                            }
+                        }
+                    }
+                }
+            }
+
+            this.logger.log(`📤 [Producción] Payload enviado al CRM:\n${JSON.stringify(debugForm, null, 2)}`);
             // ======================================================
             // 4️⃣ Envío al CRM (Laravel)
             // ======================================================
