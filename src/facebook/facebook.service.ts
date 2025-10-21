@@ -22,6 +22,7 @@ export class FacebookService {
             // ======================================================
             // 1️⃣ Extracción y sanitización de campos
             // ======================================================
+
             const lead = {
                 brand: payload.brand || payload.marca || '',
                 model: payload.model || payload.modelo || '',
@@ -31,7 +32,7 @@ export class FacebookService {
                 transmission: payload.transmission || payload.transmision || '',
                 mileage: payload.mileage || payload.kilometraje || '',
                 year: parseInt(payload.year || payload.año || '0'),
-                amount: payload.amount || payload.valor || payload.price || 0,
+                amount: parseInt((payload.amount || payload.valor || payload.price || '0').toString().replace(/\D/g, ''), 10),
                 message: payload.message || 'Sin mensaje',
                 hasAirConditioning:
                     payload.hasAirConditioning ||
