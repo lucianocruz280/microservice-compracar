@@ -76,7 +76,14 @@ export class CrmService {
             this.logger.log(`Lead enviado al CRM → ID: ${data?.data?.id}`);
             return data;
         } catch (error) {
-            this.logger.error(`Error enviando lead al CRM: ${error}`);
+            if (axios.isAxiosError(error)) {
+                const responseData = error.response?.data;
+                this.logger.error(
+                    `Error enviando lead al CRM: ${error.message}\nDetalles: ${JSON.stringify(responseData, null, 2)}`
+                );
+            } else {
+                this.logger.error(`Error inesperado enviando lead: ${error}`);
+            }
             throw error;
         }
     }
