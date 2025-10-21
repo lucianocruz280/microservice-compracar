@@ -9,7 +9,7 @@ export class NormalizerService {
     constructor(private readonly crmService: CrmService) { }
 
     // Nivel mínimo de similitud (0–100)
-    private threshold = 0.35;
+    private threshold = 0.25;
 
     // ======================================================
     // 🔹 UTILIDAD GENERAL
@@ -60,8 +60,29 @@ export class NormalizerService {
     async normalizeModel(input: string, brandId: number): Promise<number | null> {
         try {
             const models = await this.crmService.getModels(brandId);
+
+            // Si no hay modelos disponibles
+            if (!models || models.length === 0) {
+                this.logger.warn(`[Modelo] No se encontraron modelos para marca ${brandId}`);
+                return null;
+            }
+
+            // Si el input viene vacío
+            if (!input) {
+                this.logger.log(`[Modelo] Input vacío, usando primer modelo disponible: ${models[0].name}`);
+                return models[0].id;
+            }
+
+            // Intentar match por similitud
             const match = this.fuzzyMatch(input, models, 'name', 'Modelo');
-            return match ? match.id : null;
+
+            // Si no hubo match, usar primer modelo
+            if (!match) {
+                this.logger.warn(`[Modelo] No match para "${input}", usando fallback: ${models[0].name}`);
+                return models[0].id;
+            }
+
+            return match.id;
         } catch (error) {
             this.logger.error(`[Modelo] Error al obtener modelos de marca ${brandId}: ${error.message}`);
             return null;
@@ -275,7 +296,7 @@ export class NormalizerService {
 
         if (raw.mileage) result.mileageId = this.normalizeMileage(raw.mileage);
 
-        this.logger.log(`Normalización completa: ${JSON.stringify(result, null, 2)}`);
+        // this.logger.log(`Normalización completa: ${JSON.stringify(result, null, 2)}`);
         return result;
     }
 }

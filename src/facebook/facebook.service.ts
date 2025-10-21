@@ -92,7 +92,7 @@ export class FacebookService {
                     formData.append(`images[${i}]`, file);
                 });
             }
-
+            this.logger.log(`Normalización completa: ${JSON.stringify(formData, null, 2)}`);
             // ======================================================
             // 4️⃣ Envío al CRM (Laravel)
             // ======================================================
