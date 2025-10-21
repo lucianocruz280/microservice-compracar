@@ -71,54 +71,54 @@ export class NormalizerService {
     // ======================================================
     // 🔹 VERSIÓN
     // ======================================================
-   async normalizeVersion(
-    input: string,
-    modelId: number,
-    year: number,
-): Promise<number | null> {
-    try {
-        const versions = await this.crmService.getVersions(modelId, year);
+    async normalizeVersion(
+        input: string,
+        modelId: number,
+        year: number,
+    ): Promise<number | null> {
+        try {
+            const versions = await this.crmService.getVersions(modelId, year);
 
-        // Si no hay versiones en absoluto
-        if (!versions || versions.length === 0) {
-            this.logger.warn(`[Versión] No se encontraron versiones para modelo ${modelId} (${year})`);
+            // Si no hay versiones en absoluto
+            if (!versions || versions.length === 0) {
+                this.logger.warn(`[Versión] No se encontraron versiones para modelo ${modelId} (${year})`);
+                return null;
+            }
+
+            // Si no hay input (campo vacío)
+            if (!input) {
+                // Buscar una versión "SIN VERSION", si no existe, tomar la primera disponible
+                const fallback =
+                    versions.find(v => v.name.toUpperCase().includes('SIN VERSION')) ||
+                    versions[0];
+
+                this.logger.log(`[Versión] Input vacío, usando fallback: ${fallback.name}`);
+                return fallback.id;
+            }
+
+            // Intentar coincidencia normal
+            const match = this.fuzzyMatch(input, versions, 'name', 'Versión');
+
+            // Si no hay coincidencia
+            if (!match) {
+                // Buscar "SIN VERSION" o primera disponible
+                const fallbackVersion =
+                    versions.find(v => v.name.toUpperCase().includes('SIN VERSION')) ||
+                    versions[0];
+
+                this.logger.warn(
+                    `[Versión] No match para "${input}", usando fallback: ${fallbackVersion.name}`,
+                );
+                return fallbackVersion.id;
+            }
+
+            // Si hubo coincidencia exitosa
+            return match.id;
+        } catch (error) {
+            this.logger.error(`[Versión] Error con modelo ${modelId} año ${year}: ${error.message}`);
             return null;
         }
-
-        // Si no hay input (campo vacío)
-        if (!input) {
-            // Buscar una versión "SIN VERSION", si no existe, tomar la primera disponible
-            const fallback =
-                versions.find(v => v.name.toUpperCase().includes('SIN VERSION')) ||
-                versions[0];
-
-            this.logger.log(`[Versión] Input vacío, usando fallback: ${fallback.name}`);
-            return fallback.id;
-        }
-
-        // Intentar coincidencia normal
-        const match = this.fuzzyMatch(input, versions, 'name', 'Versión');
-
-        // Si no hay coincidencia
-        if (!match) {
-            // Buscar "SIN VERSION" o primera disponible
-            const fallbackVersion =
-                versions.find(v => v.name.toUpperCase().includes('SIN VERSION')) ||
-                versions[0];
-
-            this.logger.warn(
-                `[Versión] No match para "${input}", usando fallback: ${fallbackVersion.name}`,
-            );
-            return fallbackVersion.id;
-        }
-
-        // Si hubo coincidencia exitosa
-        return match.id;
-    } catch (error) {
-        this.logger.error(`[Versión] Error con modelo ${modelId} año ${year}: ${error.message}`);
-        return null;
     }
-}
 
     // ======================================================
     // 🔹 COMBUSTIBLE
@@ -175,8 +175,44 @@ export class NormalizerService {
                 versionId,
                 tractionId,
             );
-            const match = this.fuzzyMatch(input, transmissions, 'name', 'Transmisión');
-            return match ? match.id : null;
+
+            if (!transmissions || transmissions.length === 0) {
+                this.logger.warn(`[Transmisión] No se encontraron transmisiones para modelo ${modelId}`);
+                return null;
+            }
+
+            // 🧩 Normalización semántica antes del fuzzyMatch
+            let normalizedInput = input?.toUpperCase().trim();
+
+            const replacements: Record<string, string> = {
+                MECANICO: 'MANUAL',
+                MECÁNICO: 'MANUAL',
+                ESTÁNDAR: 'MANUAL',
+                STANDARD: 'MANUAL',
+                AUTOMATICO: 'AUTOMÁTICA',
+                AUTOMÁTICO: 'AUTOMÁTICA',
+            };
+
+            if (normalizedInput && replacements[normalizedInput]) {
+                normalizedInput = replacements[normalizedInput];
+                this.logger.log(`[Transmisión] Normalizado "${input}" → "${normalizedInput}"`);
+            }
+
+            // Ejecutar coincidencia difusa
+            const match = this.fuzzyMatch(normalizedInput, transmissions, 'name', 'Transmisión');
+
+            // Si no hay match, usar fallback (primera o "AUTOMÁTICA")
+            if (!match) {
+                const fallback =
+                    transmissions.find(t => t.name.toUpperCase().includes('AUTOMÁTICA')) ||
+                    transmissions[0];
+                this.logger.warn(
+                    `[Transmisión] No match para "${normalizedInput}", usando fallback: ${fallback.name}`,
+                );
+                return fallback.id;
+            }
+
+            return match.id;
         } catch (error) {
             this.logger.error(`[Transmisión] Error obteniendo transmisiones: ${error.message}`);
             return null;
